@@ -27,6 +27,7 @@ type DosNameNodeServer struct {
 	config  *NameNodeConfig
 	meta    *DataNodeMeta
 	lock    sync.Mutex
+	ghosts  GhostNodesMap
 	lamport int32
 }
 
@@ -54,6 +55,7 @@ func NewDosNameNodeServer(logFilePath string, flatNSPath string, opts ...ConfigF
 		config:  config,
 		meta:    meta,
 		lamport: 0,
+		ghosts:  make(GhostNodesMap),
 	}, nil
 }
 
@@ -86,6 +88,10 @@ since accesses to the flat namespace are single threaded
 func (s *DosNameNodeServer) CreateObject(ctx context.Context, req *api.CreateObjectRequest) (*api.CreateObjectResponse, error) {
 	s.logger.Printf("request to create object %s\n", req.Name)
 
+	// if len(s.ghosts) < s.config.Tolerance && s.config.Tolerance != -1 {
+	// 	return nil, ErrToleranceNotEnough
+	// }
+
 	var err error
 
 	s.Transactional(func() {
@@ -104,7 +110,7 @@ func (s *DosNameNodeServer) CreateObject(ctx context.Context, req *api.CreateObj
 
 			nextMetaEntry := s.meta.Next()
 			ackChan := make(chan interface{})
-			messageTag := createMessageTag(req.Name, nextMetaEntry.Id)
+			messageTag := CreateMessageTag(req.Name, nextMetaEntry.Id)
 			nextMetaEntry.ResChs[messageTag] = ackChan
 			log.Printf("selected %s", nextMetaEntry.Id)
 			select {

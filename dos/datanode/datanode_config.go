@@ -6,6 +6,7 @@ type DataNodeConfig struct {
 	dbFile     string
 	leaserAddr string
 	name       string
+	lamport    int
 }
 
 func defaultDataNodeConfig() *DataNodeConfig {
@@ -13,6 +14,7 @@ func defaultDataNodeConfig() *DataNodeConfig {
 		dbFile:     "data.db",
 		leaserAddr: "",
 		name:       "",
+		lamport:    0,
 	}
 }
 
@@ -36,5 +38,11 @@ func WithLeaser(leaserAddr string) DNodeConfigFunc {
 			log.Fatalln("node config error: leaserAddr cannot be empty")
 		}
 		node.leaserAddr = leaserAddr
+	}
+}
+
+func WithLamport(n int) DNodeConfigFunc {
+	return func(node *DataNodeConfig) {
+		node.lamport = n
 	}
 }

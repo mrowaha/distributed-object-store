@@ -4,8 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"sync"
-	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,29 +33,29 @@ func main() {
 
 	client := dos.NewDosClient(conn)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	wg.Add(1)
-	go func() {
-		client.Create(object, []byte(data))
-		wg.Done()
-	}()
-
-	time.Sleep(2 * time.Second)
-	go func() {
-		client.Delete(object)
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	// if cmd == 1 {
+	// wg := sync.WaitGroup{}
+	// wg.Add(1)
+	// wg.Add(1)
+	// go func() {
 	// 	client.Create(object, []byte(data))
-	// } else if cmd == 2 {
+	// 	wg.Done()
+	// }()
+
+	// time.Sleep(2 * time.Second)
+	// go func() {
 	// 	client.Delete(object)
-	// } else if cmd == 3 {
-	// 	client.Update(object, []byte(data))
-	// } else if cmd == 4 {
-	// 	client.Lease(object)
-	// }
+	// 	wg.Done()
+	// }()
+
+	// wg.Wait()
+
+	if cmd == 1 {
+		client.Create(object, []byte(data))
+	} else if cmd == 2 {
+		client.Delete(object)
+	} else if cmd == 3 {
+		client.Update(object, []byte(data))
+	} else if cmd == 4 {
+		client.Lease(object)
+	}
 }

@@ -22,9 +22,10 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from . import namenode_pb2 as namenode__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bghost.proto\x12\x05proto\"\x18\n\x08HelloMsg\x12\x0c\n\x04name\x18\x01 \x01(\t29\n\x0cGhostService\x12)\n\x05Hello\x12\x0f.proto.HelloMsg\x1a\x0f.proto.HelloMsgB\x0cZ\n../api;apib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bghost.proto\x12\x05proto\x1a\x0enamenode.proto\"\x18\n\x08HelloMsg\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x91\x01\n\x0cSpawnCommand\x12*\n\x06status\x18\x02 \x01(\x0e\x32\x1a.proto.SpawnCommand.Status\x12\x0f\n\x07lamport\x18\x03 \x01(\x05\x12&\n\x08\x63ommands\x18\x01 \x03(\x0b\x32\x14.proto.CreateCommand\"\x1c\n\x06Status\x12\x08\n\x04WAIT\x10\x00\x12\x08\n\x04\x44ONE\x10\x01\"\x19\n\tSpawnWait\x12\x0c\n\x04name\x18\x01 \x01(\t2@\n\x0cGhostService\x12\x30\n\x05Spawn\x12\x10.proto.SpawnWait\x1a\x13.proto.SpawnCommand0\x01\x42\x0cZ\n../api;apib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,8 +33,14 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ghost_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z\n../api;api'
-  _globals['_HELLOMSG']._serialized_start=22
-  _globals['_HELLOMSG']._serialized_end=46
-  _globals['_GHOSTSERVICE']._serialized_start=48
-  _globals['_GHOSTSERVICE']._serialized_end=105
+  _globals['_HELLOMSG']._serialized_start=38
+  _globals['_HELLOMSG']._serialized_end=62
+  _globals['_SPAWNCOMMAND']._serialized_start=65
+  _globals['_SPAWNCOMMAND']._serialized_end=210
+  _globals['_SPAWNCOMMAND_STATUS']._serialized_start=182
+  _globals['_SPAWNCOMMAND_STATUS']._serialized_end=210
+  _globals['_SPAWNWAIT']._serialized_start=212
+  _globals['_SPAWNWAIT']._serialized_end=237
+  _globals['_GHOSTSERVICE']._serialized_start=239
+  _globals['_GHOSTSERVICE']._serialized_end=303
 # @@protoc_insertion_point(module_scope)

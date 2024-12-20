@@ -113,3 +113,20 @@ func (d *DataNodeMeta) LeaseServices(nodes []string) ([]string, error) {
 	}
 	return services, nil
 }
+
+func (d *DataNodeMeta) DeleteNode(nodeId string) {
+	idx := slices.IndexFunc(*d.heap, func(entry *MetaHeapEntry) bool {
+		return entry.Id == nodeId
+	})
+
+	if idx == -1 {
+		return
+	}
+
+	lastIdx := d.heap.Len() - 1
+	(*d.heap)[idx] = (*d.heap)[lastIdx]
+	*d.heap = (*d.heap)[:lastIdx]
+	if idx < d.heap.Len() {
+		heap.Fix(d.heap, idx)
+	}
+}

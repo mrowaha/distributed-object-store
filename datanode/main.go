@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,6 +18,7 @@ var (
 	store   string
 	process string
 	lease   string
+	lamport int
 )
 
 func main() {
@@ -23,6 +26,7 @@ func main() {
 	flag.StringVar(&store, "store", "data.db", "store .db file name")
 	flag.StringVar(&process, "process", "", "name of the process. required for unique queues in redis")
 	flag.StringVar(&lease, "lease", "", "lease address")
+	flag.IntVar(&lamport, "lamport", 0, "initial lamport")
 	flag.Parse()
 
 	if len(process) == 0 {
@@ -35,12 +39,20 @@ func main() {
 	}
 	defer conn.Close()
 
+	if process == "alpha" {
+		go func() {
+			time.Sleep(10 * time.Second)
+			os.Exit(1)
+		}()
+	}
+
 	client := dos.NewDosDataNode(
 		conn,
 		NewRedisDataNodeQueue(),
 		dos.WithDBFile(store),
 		dos.WithLeaser(lease),
 		dos.WithName(process),
+		dos.WithLamport(lamport),
 	)
 	client.Register()
 }

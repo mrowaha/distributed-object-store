@@ -22,6 +22,54 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// this message contains definitions used by the namenode
+// so that the ghost node can load objects and their data
+type SpawnCommand_Status int32
+
+const (
+	SpawnCommand_WAIT SpawnCommand_Status = 0
+	SpawnCommand_DONE SpawnCommand_Status = 1
+)
+
+// Enum value maps for SpawnCommand_Status.
+var (
+	SpawnCommand_Status_name = map[int32]string{
+		0: "WAIT",
+		1: "DONE",
+	}
+	SpawnCommand_Status_value = map[string]int32{
+		"WAIT": 0,
+		"DONE": 1,
+	}
+)
+
+func (x SpawnCommand_Status) Enum() *SpawnCommand_Status {
+	p := new(SpawnCommand_Status)
+	*p = x
+	return p
+}
+
+func (x SpawnCommand_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SpawnCommand_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_ghost_proto_enumTypes[0].Descriptor()
+}
+
+func (SpawnCommand_Status) Type() protoreflect.EnumType {
+	return &file_ghost_proto_enumTypes[0]
+}
+
+func (x SpawnCommand_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SpawnCommand_Status.Descriptor instead.
+func (SpawnCommand_Status) EnumDescriptor() ([]byte, []int) {
+	return file_ghost_proto_rawDescGZIP(), []int{1, 0}
+}
+
 // Ghost node service
 type HelloMsg struct {
 	state         protoimpl.MessageState
@@ -68,18 +116,140 @@ func (x *HelloMsg) GetName() string {
 	return ""
 }
 
+type SpawnCommand struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status   SpawnCommand_Status `protobuf:"varint,2,opt,name=status,proto3,enum=proto.SpawnCommand_Status" json:"status,omitempty"`
+	Lamport  int32               `protobuf:"varint,3,opt,name=lamport,proto3" json:"lamport,omitempty"`
+	Commands []*CreateCommand    `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
+}
+
+func (x *SpawnCommand) Reset() {
+	*x = SpawnCommand{}
+	mi := &file_ghost_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SpawnCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SpawnCommand) ProtoMessage() {}
+
+func (x *SpawnCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_ghost_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SpawnCommand.ProtoReflect.Descriptor instead.
+func (*SpawnCommand) Descriptor() ([]byte, []int) {
+	return file_ghost_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SpawnCommand) GetStatus() SpawnCommand_Status {
+	if x != nil {
+		return x.Status
+	}
+	return SpawnCommand_WAIT
+}
+
+func (x *SpawnCommand) GetLamport() int32 {
+	if x != nil {
+		return x.Lamport
+	}
+	return 0
+}
+
+func (x *SpawnCommand) GetCommands() []*CreateCommand {
+	if x != nil {
+		return x.Commands
+	}
+	return nil
+}
+
+type SpawnWait struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// this message is used by the ghost node to wait for a spawn command
+	// by the ghost node
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *SpawnWait) Reset() {
+	*x = SpawnWait{}
+	mi := &file_ghost_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SpawnWait) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SpawnWait) ProtoMessage() {}
+
+func (x *SpawnWait) ProtoReflect() protoreflect.Message {
+	mi := &file_ghost_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SpawnWait.ProtoReflect.Descriptor instead.
+func (*SpawnWait) Descriptor() ([]byte, []int) {
+	return file_ghost_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SpawnWait) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 var File_ghost_proto protoreflect.FileDescriptor
 
 var file_ghost_proto_rawDesc = []byte{
 	0x0a, 0x0b, 0x67, 0x68, 0x6f, 0x73, 0x74, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x05, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x0e, 0x6e, 0x61, 0x6d, 0x65, 0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x22, 0x1e, 0x0a, 0x08, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x4d, 0x73, 0x67,
 	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
-	0x6e, 0x61, 0x6d, 0x65, 0x32, 0x39, 0x0a, 0x0c, 0x47, 0x68, 0x6f, 0x73, 0x74, 0x53, 0x65, 0x72,
-	0x76, 0x69, 0x63, 0x65, 0x12, 0x29, 0x0a, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x12, 0x0f, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x4d, 0x73, 0x67, 0x1a, 0x0f,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x4d, 0x73, 0x67, 0x42,
-	0x0c, 0x5a, 0x0a, 0x2e, 0x2e, 0x2f, 0x61, 0x70, 0x69, 0x3b, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6e, 0x61, 0x6d, 0x65, 0x22, 0xac, 0x01, 0x0a, 0x0c, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x43, 0x6f,
+	0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x32, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x70,
+	0x61, 0x77, 0x6e, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x2e, 0x53, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x6c, 0x61, 0x6d,
+	0x70, 0x6f, 0x72, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x6c, 0x61, 0x6d, 0x70,
+	0x6f, 0x72, 0x74, 0x12, 0x30, 0x0a, 0x08, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x73, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x08, 0x63, 0x6f, 0x6d,
+	0x6d, 0x61, 0x6e, 0x64, 0x73, 0x22, 0x1c, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12,
+	0x08, 0x0a, 0x04, 0x57, 0x41, 0x49, 0x54, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x4f, 0x4e,
+	0x45, 0x10, 0x01, 0x22, 0x1f, 0x0a, 0x09, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x57, 0x61, 0x69, 0x74,
+	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x32, 0x40, 0x0a, 0x0c, 0x47, 0x68, 0x6f, 0x73, 0x74, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x12, 0x30, 0x0a, 0x05, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x12, 0x10, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x57, 0x61, 0x69, 0x74, 0x1a,
+	0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x70, 0x61, 0x77, 0x6e, 0x43, 0x6f, 0x6d,
+	0x6d, 0x61, 0x6e, 0x64, 0x30, 0x01, 0x42, 0x0c, 0x5a, 0x0a, 0x2e, 0x2e, 0x2f, 0x61, 0x70, 0x69,
+	0x3b, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -94,18 +264,25 @@ func file_ghost_proto_rawDescGZIP() []byte {
 	return file_ghost_proto_rawDescData
 }
 
-var file_ghost_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ghost_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ghost_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ghost_proto_goTypes = []any{
-	(*HelloMsg)(nil), // 0: proto.HelloMsg
+	(SpawnCommand_Status)(0), // 0: proto.SpawnCommand.Status
+	(*HelloMsg)(nil),         // 1: proto.HelloMsg
+	(*SpawnCommand)(nil),     // 2: proto.SpawnCommand
+	(*SpawnWait)(nil),        // 3: proto.SpawnWait
+	(*CreateCommand)(nil),    // 4: proto.CreateCommand
 }
 var file_ghost_proto_depIdxs = []int32{
-	0, // 0: proto.GhostService.Hello:input_type -> proto.HelloMsg
-	0, // 1: proto.GhostService.Hello:output_type -> proto.HelloMsg
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: proto.SpawnCommand.status:type_name -> proto.SpawnCommand.Status
+	4, // 1: proto.SpawnCommand.commands:type_name -> proto.CreateCommand
+	3, // 2: proto.GhostService.Spawn:input_type -> proto.SpawnWait
+	2, // 3: proto.GhostService.Spawn:output_type -> proto.SpawnCommand
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ghost_proto_init() }
@@ -113,18 +290,20 @@ func file_ghost_proto_init() {
 	if File_ghost_proto != nil {
 		return
 	}
+	file_namenode_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ghost_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   1,
+			NumEnums:      1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_ghost_proto_goTypes,
 		DependencyIndexes: file_ghost_proto_depIdxs,
+		EnumInfos:         file_ghost_proto_enumTypes,
 		MessageInfos:      file_ghost_proto_msgTypes,
 	}.Build()
 	File_ghost_proto = out.File

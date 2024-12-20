@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mrowaha/dos/api"
 )
 
 type DataNodeSqlStore struct {
@@ -154,4 +156,46 @@ func (s *DataNodeSqlStore) Objects() ([]string, error) {
 	}
 
 	return objects, nil
+}
+
+func (s *DataNodeSqlStore) ObjectsWithData(objects []string) ([]*api.NodeHeartBeat_Object, error) {
+	if len(objects) == 0 {
+		return make([]*api.NodeHeartBeat_Object, 0), nil
+	}
+
+	query := `
+		SELECT object, data
+		FROM datanode
+		WHERE object IN (?` + strings.Repeat(",?", len(objects)-1) + `);
+	`
+
+	args := make([]interface{}, len(objects))
+	for i, obj := range objects {
+		args[i] = obj
+	}
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve object-data pairs from datanode table: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*api.NodeHeartBeat_Object
+	for rows.Next() {
+		var obj string
+		var data []byte
+		if err := rows.Scan(&obj, &data); err != nil {
+			return nil, fmt.Errorf("failed to scan object-data pair: %w", err)
+		}
+		result = append(result, &api.NodeHeartBeat_Object{
+			Name: obj,
+			Data: data,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", err)
+	}
+
+	return result, nil
 }

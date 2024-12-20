@@ -12,13 +12,14 @@ import (
 )
 
 type DosDataNode struct {
-	me     string
-	client api.DataServiceClient
-	logger *log.Logger
-	store  *DataNodeSqlStore
-	config *DataNodeConfig
-	queue  DataNodeQueue
-	leaser *DataNodeLeaseService
+	me          string
+	client      api.DataServiceClient
+	logger      *log.Logger
+	store       *DataNodeSqlStore
+	config      *DataNodeConfig
+	queue       DataNodeQueue
+	leaser      *DataNodeLeaseService
+	initLamport int
 }
 
 func NewDosDataNode(conn *grpc.ClientConn, queue DataNodeQueue, opts ...DNodeConfigFunc) *DosDataNode {
@@ -43,13 +44,14 @@ func NewDosDataNode(conn *grpc.ClientConn, queue DataNodeQueue, opts ...DNodeCon
 	leaser := NewDataNodeLeaseService(cfg.leaserAddr)
 
 	return &DosDataNode{
-		client: c,
-		logger: logger,
-		config: cfg,
-		store:  store,
-		me:     cfg.name,
-		queue:  queue,
-		leaser: leaser,
+		client:      c,
+		logger:      logger,
+		config:      cfg,
+		store:       store,
+		me:          cfg.name,
+		queue:       queue,
+		leaser:      leaser,
+		initLamport: cfg.lamport,
 	}
 }
 
@@ -93,6 +95,15 @@ func (d *DosDataNode) HandleUpdate(cmd *api.UpdateCommand) {
 	d.leaser.PushObjectUpdate(cmd.ObjectName, cmd.ObjectData, sequence)
 }
 
+func (d *DosDataNode) HandleDistributedRead(cmd *api.DistributedReadCommand) []*api.NodeHeartBeat_Object {
+	log.Printf("distributed read object handler\n")
+	result, err := d.store.ObjectsWithData(cmd.Objects)
+	if err != nil {
+		log.Fatalf("failed to handle distributed read...\n%s\n", err.Error())
+	}
+	return result
+}
+
 func (d *DosDataNode) Register() {
 	bistream, err := d.client.RegisterNode(context.Background())
 	if err != nil {
@@ -126,7 +137,7 @@ func (d *DosDataNode) Register() {
 	var lastLamport int32
 	var blocked bool
 	var skip bool
-	lastLamport = 0 // have not yet received any lamport
+	lastLamport = int32(d.initLamport) // have not yet received any lamport
 	for {
 		log.Printf("awaiting")
 		blocked = false
@@ -222,6 +233,30 @@ func (d *DosDataNode) Register() {
 				Type:       api.NodeHeartBeat_ACK,
 				MessageTag: resp.MessageTag,
 			}
+		case api.CommandNodeRes_DISTRIBUTED_READ:
+			log.Printf("distributed read request %v, @lamport%d\n", resp.DistributedRead.Objects, resp.DistributedRead.Lamport)
+			if resp.DistributedRead.Lamport-lastLamport == 1 {
+				lastLamport = resp.DistributedRead.Lamport
+				result := d.HandleDistributedRead(resp.DistributedRead)
+				messageChan <- &api.NodeHeartBeat{
+					Type:       api.NodeHeartBeat_DISTRIUTED_READ,
+					MessageTag: resp.MessageTag,
+					ObjectData: result,
+				}
+			} else {
+				log.Printf("distribted read was blocked")
+				blocked = true
+				err := d.queue.BlockCommand(
+					float64(resp.DistributedRead.Lamport),
+					namenode.DistributedReadCommand{
+						Objects: resp.DistributedRead.Objects,
+						Type:    namenode.DISTRIBUTEDREAD,
+					},
+				)
+				if err != nil {
+					log.Fatalf("failed to block distributed read command... %v\n", err.Error())
+				}
+			}
 		}
 
 		// now we begin delivering all the messages and update the lastlamport accordingly
@@ -252,18 +287,28 @@ func (d *DosDataNode) Register() {
 				switch v := next.(type) {
 				case namenode.CommitCommand:
 					d.HandleCommit(&api.CommitCommand{})
-					log.Printf("delievered")
+					log.Printf("delievered commit")
 				case namenode.DeleteCommand:
 					d.HandleDelete(&api.DeleteCommand{
 						ObjectName: v.Name,
 					})
-					log.Printf("delievered")
+					log.Printf("delievered delete")
 				case namenode.UpdateCommand:
 					d.HandleUpdate(&api.UpdateCommand{
 						ObjectName: v.Name,
 						ObjectData: v.Data,
 					})
-					log.Printf("delievered")
+					log.Printf("delievered update")
+				case namenode.DistributedReadCommand:
+					result := d.HandleDistributedRead(&api.DistributedReadCommand{
+						Objects: v.Objects,
+					})
+					messageChan <- &api.NodeHeartBeat{
+						Type:       api.NodeHeartBeat_DISTRIUTED_READ,
+						ObjectData: result,
+						MessageTag: namenode.DistributedReadTag(v.Objects, d.me),
+					}
+					log.Printf("delievered distributed read")
 				}
 			}
 

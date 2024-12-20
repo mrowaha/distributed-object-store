@@ -5,32 +5,41 @@ import os
 import argparse
 from arg import Args, validate_mode, Mode
 import spawn
-
+import time
+import threading
 # Get the current working directory
 daemon_dir = Path.cwd()
 
 def main(*, args: Args):
-    print(f"daemon was started with the following args: {args}")
-    env = os.environ.copy()
-    exitCode = 1
-    try:
-        process = subprocess.Popen(
-            ["go", "run", ".", f"-store={args['store']}", f"-process={args['process']}", f"-lease={args['lease']}" ],
-            stdout=subprocess.PIPE,  # Capture standard output
-            stderr=subprocess.PIPE,   # Capture standard error
-            env=env,
-            text=True
-        )
+    lamport = 0
+    if args['mode'] == Mode.GHOST:
+        spawner : spawn.ISpawner = spawn.Spawner(args['process'], args['port'], args['store'])
+        lamport = spawner.run()
+        print(f"lamport updated to {lamport}")
 
-        while True:
-            if process.poll() is not None:
-                break
-            error = process.stderr.readline()
-            print(f"[daemon] {error}",end="")
-        exitCode = process.returncode
+    while True:
+        env = os.environ.copy()
+        try:
+            exec = ["go", "run", ".", f"-store={args['store']}", f"-process={args['process']}", f"-lease={args['lease']}", f"-lamport={lamport}"]
+            print(f'execution command: {" ".join(exec)}')
+            process = subprocess.Popen(
+                exec,
+                stdout=subprocess.PIPE,  # Capture standard output
+                stderr=subprocess.PIPE,   # Capture standard error
+                env=env,
+                text=True
+            )
 
-    except Exception as e:
-        print(f"An error occurred in daemon: {e}")
+            while True:
+                if process.poll() is not None:
+                    break
+                error = process.stderr.readline()
+                print(f"[daemon] {error}",end="")
+
+            spawner : spawn.ISpawner = spawn.Spawner(args['process'], args['port'], args['store'])
+            spawner.run()
+        except Exception as e:
+            print(f"An error occurred in daemon: {e}")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -41,4 +50,4 @@ if __name__ == "__main__":
     ap.add_argument("-m", "--mode", type=validate_mode, help="ghost or data mode", default=Mode.GHOST)
     args : Args =  Args(**vars(ap.parse_args()))
     print(args)
-    # main(args=args)
+    main(args=args)

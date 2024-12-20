@@ -3,6 +3,7 @@ package namenode
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"slices"
 )
@@ -97,6 +98,19 @@ func (fn *FlatNamespace) Nodes(forObject string) ([]string, error) {
 		nodes = append(nodes, k)
 	}
 	return nodes, nil
+}
+
+func (fn *FlatNamespace) Objects(forNode string) []string {
+	objects := make([]string, 0)
+	for _, object := range fn.ns {
+		fmt.Println(object)
+		_, ok := object.nodes[forNode]
+		if ok {
+			// if object is storing this node
+			objects = append(objects, object.name)
+		}
+	}
+	return objects
 }
 
 func (fn *FlatNamespace) Load(fnFile string) error {

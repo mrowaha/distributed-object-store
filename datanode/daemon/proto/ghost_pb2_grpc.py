@@ -4,6 +4,7 @@ import grpc
 import warnings
 
 from . import ghost_pb2 as ghost__pb2
+
 GRPC_GENERATED_VERSION = '1.68.1'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
@@ -33,17 +34,17 @@ class GhostServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.Hello = channel.unary_unary(
-                '/proto.GhostService/Hello',
-                request_serializer=ghost__pb2.HelloMsg.SerializeToString,
-                response_deserializer=ghost__pb2.HelloMsg.FromString,
+        self.Spawn = channel.unary_stream(
+                '/proto.GhostService/Spawn',
+                request_serializer=ghost__pb2.SpawnWait.SerializeToString,
+                response_deserializer=ghost__pb2.SpawnCommand.FromString,
                 _registered_method=True)
 
 
 class GhostServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def Hello(self, request, context):
+    def Spawn(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -52,10 +53,10 @@ class GhostServiceServicer(object):
 
 def add_GhostServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'Hello': grpc.unary_unary_rpc_method_handler(
-                    servicer.Hello,
-                    request_deserializer=ghost__pb2.HelloMsg.FromString,
-                    response_serializer=ghost__pb2.HelloMsg.SerializeToString,
+            'Spawn': grpc.unary_stream_rpc_method_handler(
+                    servicer.Spawn,
+                    request_deserializer=ghost__pb2.SpawnWait.FromString,
+                    response_serializer=ghost__pb2.SpawnCommand.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -69,7 +70,7 @@ class GhostService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Hello(request,
+    def Spawn(request,
             target,
             options=(),
             channel_credentials=None,
@@ -79,12 +80,12 @@ class GhostService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
+        return grpc.experimental.unary_stream(
             request,
             target,
-            '/proto.GhostService/Hello',
-            ghost__pb2.HelloMsg.SerializeToString,
-            ghost__pb2.HelloMsg.FromString,
+            '/proto.GhostService/Spawn',
+            ghost__pb2.SpawnWait.SerializeToString,
+            ghost__pb2.SpawnCommand.FromString,
             options,
             channel_credentials,
             insecure,

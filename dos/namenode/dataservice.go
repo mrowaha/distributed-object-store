@@ -17,9 +17,10 @@ type BroadcastEvent string
 
 // these events are broadcasted to datanodes
 const (
-	COMMIT BroadcastEvent = "commit"
-	DELETE BroadcastEvent = "delete"
-	UPDATE BroadcastEvent = "update"
+	COMMIT          BroadcastEvent = "commit"
+	DELETE          BroadcastEvent = "delete"
+	UPDATE          BroadcastEvent = "update"
+	DISTRIBUTEDREAD BroadcastEvent = "distributed-read"
 )
 
 type CreateCommand struct {
@@ -46,13 +47,20 @@ type UpdateCommand struct {
 	Type    BroadcastEvent `json:"type"`
 }
 
+type DistributedReadCommand struct {
+	Lamport int32          `json:"-"`
+	Objects []string       `json:"objects"`
+	Type    BroadcastEvent `json:"type"`
+}
+
 type CommandNode struct {
-	tag     string
-	command api.CommandNodeRes_Command
-	commit  CommitCommand
-	create  CreateCommand
-	delete  DeleteCommand
-	update  UpdateCommand
+	tag             string
+	command         api.CommandNodeRes_Command
+	commit          CommitCommand
+	create          CreateCommand
+	delete          DeleteCommand
+	update          UpdateCommand
+	distributedRead DistributedReadCommand
 }
 
 // this file contains definitions for the datanode service
@@ -68,7 +76,6 @@ func (s *DosNameNodeServer) RegisterNode(stream grpc.BidiStreamingServer[api.Nod
 	closedCh := make(chan struct{}, 1) // size of the channel is one
 	// because we do not want to block when the stream is closed
 
-	// create meta heap entry
 	s.Transactional(func() {
 		s.meta.RegisterNode(&MetaHeapEntry{
 			Id:        dataNodeID,
@@ -86,9 +93,24 @@ func (s *DosNameNodeServer) RegisterNode(stream grpc.BidiStreamingServer[api.Nod
 			s.logger.Printf("closing ch for tag %s\n", tag)
 			close(ch)
 		}
+
+		s.Transactional(func() {
+			s.meta.DeleteNode(dataNodeID)
+			s.logger.Printf("[datanode %s] removed from heap", dataNodeID)
+		})
+
+		// begin protocol for fault tolerance via ghost nodes
+		err := s.InitiateSpawn(dataNodeID)
+		if err != nil {
+			if err == ErrNoGhostNode {
+				// s.logger.Fatalf("likely bug. execution should not reach")
+			}
+		}
+
 		s.Transactional(func() {
 			s.flatNS.RemoveNode(dataNodeID)
 		})
+
 	}()
 
 	go func() {
@@ -114,6 +136,13 @@ func (s *DosNameNodeServer) RegisterNode(stream grpc.BidiStreamingServer[api.Nod
 					s.Transactional(func() {
 						s.meta.UpdateSize(req.Id, req.Size)
 					})
+				} else if req.Type == api.NodeHeartBeat_DISTRIUTED_READ {
+					if ch, ok := resChans[req.MessageTag]; ok {
+						s.logger.Printf("distributed read tagged %s result", req.MessageTag)
+						ch <- req.ObjectData
+					} else {
+						s.logger.Printf("distributed read error, message tag %s channel does not exist", req.MessageTag)
+					}
 				}
 			}
 		}
@@ -143,7 +172,7 @@ func (s *DosNameNodeServer) BroadcastCommit(name string) {
 		commit:  CommitCommand{Lamport: s.lamport, Type: COMMIT, Name: name},
 	}
 	s.meta.ForEach(func(entry *MetaHeapEntry) {
-		messageTag := commitMessageTag(name, entry.Id)
+		messageTag := CommitMessageTag(name, entry.Id)
 		command.tag = messageTag
 		ackChan := make(chan interface{})
 		entry.ResChs[messageTag] = ackChan
@@ -171,7 +200,7 @@ func (s *DosNameNodeServer) BroadcastDelete(name string) {
 		},
 	}
 	s.meta.ForEach(func(entry *MetaHeapEntry) {
-		messageTag := deleteMessageTag(name, entry.Id)
+		messageTag := DeleteMessageTag(name, entry.Id)
 		command.tag = messageTag
 		ackChan := make(chan interface{})
 		entry.ResChs[messageTag] = ackChan
@@ -200,7 +229,7 @@ func (s *DosNameNodeServer) BroadcastUpdate(name string, data []byte) {
 		},
 	}
 	s.meta.ForEach(func(entry *MetaHeapEntry) {
-		messageTag := updateMessageTag(name, entry.Id)
+		messageTag := UpdateMessageTag(name, entry.Id)
 		command.tag = messageTag
 		ackChan := make(chan interface{})
 		entry.ResChs[messageTag] = ackChan
@@ -215,4 +244,32 @@ func (s *DosNameNodeServer) BroadcastUpdate(name string, data []byte) {
 		}
 		delete(entry.ResChs, messageTag)
 	})
+}
+
+func (s *DosNameNodeServer) BroadcastDistributedRead(objects []string) <-chan interface{} {
+	atomic.AddInt32(&s.lamport, 1)
+	command := CommandNode{
+		command: api.CommandNodeRes_DISTRIBUTED_READ,
+		distributedRead: DistributedReadCommand{
+			Objects: objects,
+			Lamport: s.lamport,
+		},
+	}
+
+	resultsCh := make(chan interface{}, 5)
+	defer close(resultsCh)
+	s.meta.ForEach(func(entry *MetaHeapEntry) {
+		messageTag := DistributedReadTag(objects, entry.Id)
+		command.tag = messageTag
+		ackChan := make(chan interface{})
+		entry.ResChs[messageTag] = ackChan
+		entry.CommandCh <- command
+		reads, ok := <-ackChan
+		if ok {
+			resultsCh <- reads
+		}
+		delete(entry.ResChs, messageTag)
+	})
+
+	return resultsCh
 }

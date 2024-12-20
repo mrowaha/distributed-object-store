@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 package proto;
-
+import "namenode.proto";
 option go_package = "../api;api";
 
 // Ghost node service
@@ -10,6 +10,24 @@ message HelloMsg {
     string name = 1;
 }
 
+message SpawnCommand {
+    // this message contains definitions used by the namenode
+    // so that the ghost node can load objects and their data
+    enum Status {
+        WAIT = 0;
+        DONE = 1;
+    }
+    Status status = 2;
+    int32 lamport = 3;
+    repeated CreateCommand commands = 1;
+}
+
+message SpawnWait {
+    // this message is used by the ghost node to wait for a spawn command
+    // by the ghost node
+    string name = 1;
+}
+
 service GhostService {
-    rpc Hello(HelloMsg) returns (HelloMsg);
+    rpc Spawn(SpawnWait) returns (stream SpawnCommand);
 }

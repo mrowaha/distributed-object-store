@@ -21,14 +21,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GhostService_Hello_FullMethodName = "/proto.GhostService/Hello"
+	GhostService_Spawn_FullMethodName = "/proto.GhostService/Spawn"
 )
 
 // GhostServiceClient is the client API for GhostService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GhostServiceClient interface {
-	Hello(ctx context.Context, in *HelloMsg, opts ...grpc.CallOption) (*HelloMsg, error)
+	Spawn(ctx context.Context, in *SpawnWait, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpawnCommand], error)
 }
 
 type ghostServiceClient struct {
@@ -39,21 +39,30 @@ func NewGhostServiceClient(cc grpc.ClientConnInterface) GhostServiceClient {
 	return &ghostServiceClient{cc}
 }
 
-func (c *ghostServiceClient) Hello(ctx context.Context, in *HelloMsg, opts ...grpc.CallOption) (*HelloMsg, error) {
+func (c *ghostServiceClient) Spawn(ctx context.Context, in *SpawnWait, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SpawnCommand], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HelloMsg)
-	err := c.cc.Invoke(ctx, GhostService_Hello_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &GhostService_ServiceDesc.Streams[0], GhostService_Spawn_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[SpawnWait, SpawnCommand]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type GhostService_SpawnClient = grpc.ServerStreamingClient[SpawnCommand]
 
 // GhostServiceServer is the server API for GhostService service.
 // All implementations must embed UnimplementedGhostServiceServer
 // for forward compatibility.
 type GhostServiceServer interface {
-	Hello(context.Context, *HelloMsg) (*HelloMsg, error)
+	Spawn(*SpawnWait, grpc.ServerStreamingServer[SpawnCommand]) error
 	mustEmbedUnimplementedGhostServiceServer()
 }
 
@@ -64,8 +73,8 @@ type GhostServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGhostServiceServer struct{}
 
-func (UnimplementedGhostServiceServer) Hello(context.Context, *HelloMsg) (*HelloMsg, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Hello not implemented")
+func (UnimplementedGhostServiceServer) Spawn(*SpawnWait, grpc.ServerStreamingServer[SpawnCommand]) error {
+	return status.Errorf(codes.Unimplemented, "method Spawn not implemented")
 }
 func (UnimplementedGhostServiceServer) mustEmbedUnimplementedGhostServiceServer() {}
 func (UnimplementedGhostServiceServer) testEmbeddedByValue()                      {}
@@ -88,23 +97,16 @@ func RegisterGhostServiceServer(s grpc.ServiceRegistrar, srv GhostServiceServer)
 	s.RegisterService(&GhostService_ServiceDesc, srv)
 }
 
-func _GhostService_Hello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HelloMsg)
-	if err := dec(in); err != nil {
-		return nil, err
+func _GhostService_Spawn_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SpawnWait)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(GhostServiceServer).Hello(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GhostService_Hello_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GhostServiceServer).Hello(ctx, req.(*HelloMsg))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(GhostServiceServer).Spawn(m, &grpc.GenericServerStream[SpawnWait, SpawnCommand]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type GhostService_SpawnServer = grpc.ServerStreamingServer[SpawnCommand]
 
 // GhostService_ServiceDesc is the grpc.ServiceDesc for GhostService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -112,12 +114,13 @@ func _GhostService_Hello_Handler(srv interface{}, ctx context.Context, dec func(
 var GhostService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.GhostService",
 	HandlerType: (*GhostServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Hello",
-			Handler:    _GhostService_Hello_Handler,
+			StreamName:    "Spawn",
+			Handler:       _GhostService_Spawn_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "ghost.proto",
 }

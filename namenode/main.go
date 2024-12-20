@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	port    int
-	logfile string
-	nsFile  string
-	repl    int
+	port      int
+	logfile   string
+	nsFile    string
+	repl      int
+	tolerance int
 )
 
 func main() {
@@ -21,6 +22,7 @@ func main() {
 	flag.StringVar(&logfile, "logfile", "namenode.log", "log file path")
 	flag.StringVar(&nsFile, "nsfile", "namenode-ns.txt", "flat namespace file pth")
 	flag.IntVar(&repl, "repl", 2, "replication factor")
+	flag.IntVar(&tolerance, "tol", 1, "tolerance factor")
 	flag.Parse()
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -30,7 +32,7 @@ func main() {
 	defer listener.Close()
 
 	log.Printf("listening on port %d", port)
-	service, err := dos.NewDosNameNodeServer(logfile, nsFile, dos.WithReplication(repl))
+	service, err := dos.NewDosNameNodeServer(logfile, nsFile, dos.WithReplication(repl), dos.WithTolerance(tolerance))
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

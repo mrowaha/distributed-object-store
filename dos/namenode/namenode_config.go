@@ -2,6 +2,7 @@ package namenode
 
 type NameNodeConfig struct {
 	Replication int
+	Tolerance   int
 }
 
 type ConfigFunc func(*NameNodeConfig)
@@ -9,6 +10,7 @@ type ConfigFunc func(*NameNodeConfig)
 func defaultNameNodeConfig() *NameNodeConfig {
 	return &NameNodeConfig{
 		Replication: 2,
+		Tolerance:   0,
 	}
 }
 
@@ -23,5 +25,11 @@ func NewNameNodeConfig(opts ...ConfigFunc) *NameNodeConfig {
 func WithReplication(n int) ConfigFunc {
 	return func(cfg *NameNodeConfig) {
 		cfg.Replication = n
+	}
+}
+
+func WithTolerance(n int) ConfigFunc {
+	return func(cfg *NameNodeConfig) {
+		cfg.Tolerance = n
 	}
 }

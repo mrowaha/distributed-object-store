@@ -78,13 +78,21 @@ message NodeHeartBeat {
     enum Type {
         ACK = 0;
         BEAT = 1;
+        DISTRIUTED_READ = 2;
     }
+
+    message Object {
+        string name = 1;
+        bytes data = 2;
+    }
+
     Type type = 7;
     string id = 1; // data node name
     float size = 3; // data node store size
     repeated string objects = 4; // objects contained in this node's store
     string leaserService = 5; // addr of lease pub service
     string messageTag = 6;
+    repeated Object objectData = 8;
 }
 
 message CommandNodeRes {
@@ -94,14 +102,16 @@ message CommandNodeRes {
         COMMIT = 2;
         DELETE = 3;
         UPDATE = 4;
+        DISTRIBUTED_READ = 5;
     }
-    string messageTag = 7;
     ResponseMeta meta = 1;
     Command command = 2;
     CreateCommand create = 3;
     CommitCommand commit = 4;
     DeleteCommand delete = 5;
     UpdateCommand update  =6 ;
+    string messageTag = 7;
+    DistributedReadCommand distributedRead = 8;
 }
 
 message CreateCommand {
@@ -125,6 +135,11 @@ message CommitCommand {
 message DeleteCommand {
     int32 lamport = 1;
     string objectName = 2;
+}
+
+message DistributedReadCommand {
+    repeated string objects = 1; // objecst to populate
+    int32 lamport = 2;
 }
 
 service DataService {
