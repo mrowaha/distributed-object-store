@@ -1,0 +1,8 @@
+# modules
+vendor
+
+# executable shell scripts
+*.sh~
+
+# virtual envs
+env

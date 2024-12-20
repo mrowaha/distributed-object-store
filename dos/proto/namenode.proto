@@ -1,0 +1,133 @@
+// this proto file contains definitions for communication between the client and the name node
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package proto;
+
+option go_package = "../api;api";
+
+message RequestMeta {
+    google.protobuf.Timestamp ts = 1;
+}
+
+message ResponseMeta {
+    enum Status {
+        CREATED = 0;
+        DELETED = 1;
+        UPDATED = 2;
+    }
+    google.protobuf.Timestamp ts = 1;
+    Status status = 2;
+}
+
+
+// Object Creation Messsage Primitives ///////////////
+message CreateObjectRequest {
+    RequestMeta meta = 1;
+    string name = 2;
+    bytes data = 3;
+}
+
+message CreateObjectResponse {
+    ResponseMeta meta = 1;
+}
+
+// Object Deletion Message Primitives ////////////////
+message DeleteObjectRequest {
+    RequestMeta meta = 1;
+    string name = 2;
+}
+
+message DeleteObjectResponse {
+    ResponseMeta meta = 1;
+}
+
+// Object Update Message Primitives ////////////////
+message UpdateObjectReq {
+    RequestMeta meta = 1;
+    string name = 2;
+    bytes data = 3;
+}
+
+message UpdateObjectRes {
+    ResponseMeta meta = 1;
+}
+
+// Object Lease Message Primitives //////////////////
+message LeaseObjectReq {
+    RequestMeta meta = 1;
+    string name = 2;
+}
+
+message LeaseObjectRes {
+    ResponseMeta meta = 1;
+    repeated string leasers = 2;
+}
+
+service NameService {
+    // this service defines procedures to be used for the object store operations
+    rpc CreateObject(CreateObjectRequest) returns (CreateObjectResponse);
+    rpc DeleteObject(DeleteObjectRequest) returns (DeleteObjectResponse);
+    rpc UpdateObject(UpdateObjectReq) returns (UpdateObjectRes);
+    rpc LeaseObject(LeaseObjectReq) returns (LeaseObjectRes);
+}
+
+
+// Register Data Node Primitives //////////////////
+message NodeHeartBeat {
+    enum Type {
+        ACK = 0;
+        BEAT = 1;
+    }
+    Type type = 7;
+    string id = 1; // data node name
+    float size = 3; // data node store size
+    repeated string objects = 4; // objects contained in this node's store
+    string leaserService = 5; // addr of lease pub service
+    string messageTag = 6;
+}
+
+message CommandNodeRes {
+    enum Command {
+        REGISTER = 0;
+        CREATE = 1;
+        COMMIT = 2;
+        DELETE = 3;
+        UPDATE = 4;
+    }
+    string messageTag = 7;
+    ResponseMeta meta = 1;
+    Command command = 2;
+    CreateCommand create = 3;
+    CommitCommand commit = 4;
+    DeleteCommand delete = 5;
+    UpdateCommand update  =6 ;
+}
+
+message CreateCommand {
+    reserved 2;
+    string objectName = 1;
+    bytes objectData = 3;
+}
+
+message UpdateCommand {
+    string objectName = 1;
+    bytes objectData = 2;
+    int32 lamport = 3;
+}
+
+message CommitCommand {
+    reserved 1;
+    int32 lamport = 2;
+    string objectName = 3;
+}
+
+message DeleteCommand {
+    int32 lamport = 1;
+    string objectName = 2;
+}
+
+service DataService {
+    // this service defines procedures to be used by the namenode to register and manage datanodes
+    rpc RegisterNode(stream NodeHeartBeat) returns (stream CommandNodeRes); // the initial register request sends a heartbeat with the request
+}

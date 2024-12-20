@@ -1,0 +1,14 @@
+#!/bin/bash
+
+
+# first we are going to create two objects
+go run . -cmd=1 -object=me -data=rowaha
+
+# .... next object
+go run . -cmd=1 -object=hello -data=world
+
+
+# second, we are going to attempt to delete one of them
+go run . -cmd=2 -object=hello
+
+# expecte

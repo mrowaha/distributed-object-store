@@ -1,0 +1,15 @@
+// this proto file contains definitions for communication between the client and the name node
+syntax = "proto3";
+
+package proto;
+
+option go_package = "../api;api";
+
+// Ghost node service
+message HelloMsg {
+    string name = 1;
+}
+
+service GhostService {
+    rpc Hello(HelloMsg) returns (HelloMsg);
+}
